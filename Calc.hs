@@ -1,7 +1,7 @@
 module Calc where
 
 import Data.List
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), (<*>), pure)
 import Control.Monad (guard)
 
 data Tree a = Nil | Node a (Tree a) (Tree a)
@@ -105,8 +105,21 @@ parseNum e = case length e of
                1 -> return $ value $ head e
                _ -> Nothing
 
+dispatch :: [([String] -> Maybe LexTree)]
+dispatch = [ parseAdd
+           , parseSub
+           , parseMult
+           , parseDiv
+           , parseParen
+           , parseSin
+           , parseCos
+           , parseTan
+           , parseCot
+           , parseNum
+           ]
+
 parse :: [String] -> Maybe LexTree
-parse e = parseAdd e <|> parseSub e <|> parseMult e <|> parseDiv e <|>parseParen e <|> parseSin e <|> parseCos e <|> parseTan e <|> parseCot e <|> parseNum e
+parse e = foldr (<|>) Nothing (dispatch <*> pure e)
 
 applyBinOp :: (Num a, Fractional a) => String -> a -> a -> a
 applyBinOp "+" x y = x + y
