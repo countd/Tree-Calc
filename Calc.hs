@@ -3,6 +3,8 @@ module Calc where
 import Data.List
 import Control.Applicative ((<|>), (<*>), pure)
 import Control.Monad (guard)
+import Data.Maybe (fromJust)
+import qualified Data.Map as Map
 
 data Tree a = Nil | Node a (Tree a) (Tree a)
             deriving (Show)
@@ -121,17 +123,37 @@ dispatch = [ parseAdd
 parse :: [String] -> Maybe LexTree
 parse e = foldr (<|>) Nothing (dispatch <*> pure e)
 
-applyBinOp :: (Num a, Fractional a) => String -> a -> a -> a
-applyBinOp "+" x y = x + y
-applyBinOp "*" x y = x * y
-applyBinOp "-" x y = x - y
-applyBinOp "/" x y = x / y
+binaryOps :: (Fractional a) => Map.Map String (a -> a -> a)
+binaryOps = Map.fromList
+            [ ("+", (+))
+            , ("-", (-))
+            , ("*", (*))
+            , ("/", (/))
+            ]
 
-applyUnOp :: (Num a, Floating a) => String -> a -> a
-applyUnOp "sin" x = sin x
-applyUnOp "cos" x = cos x
-applyUnOp "tan" x = tan x
-applyUnOp "cot" x = 1 / (tan x)
+unaryOps :: (Floating a) => Map.Map String (a -> a)
+unaryOps = Map.fromList
+           [ ("sin", sin)
+           , ("cos", cos)
+           , ("tan", tan)
+           , ("cot", cot)
+           ] 
+    where
+      cot x = 1 / (tan x)
+
+-- we assume the operation is in the dispatch table
+-- (binaryOps) for now, since all is hardcoded
+getBinOp :: (Fractional a) => String -> (a -> a -> a)
+getBinOp o = fromJust $ Map.lookup o binaryOps
+
+getUnOp :: (Floating a) => String -> (a -> a)
+getUnOp o = fromJust $ Map.lookup o unaryOps
+
+applyBinOp :: (Fractional a) => String -> a -> a -> a
+applyBinOp o x y = (getBinOp o) x y
+
+applyUnOp :: (Floating a) => String -> a -> a
+applyUnOp o x = (getUnOp o) x
 
 -- a funcion to 'apply' a tree,
 -- i.e. read a number or apply an operator
