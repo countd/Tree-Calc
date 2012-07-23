@@ -6,8 +6,6 @@ import Control.Monad (guard)
 
 {-
 TODO:
-Add support for and '/'
-Add support for non-natural numbers: floats, fracntions and negatives
 Add support for unary operations, such as trig and log functions
 -}
 
@@ -75,6 +73,9 @@ parseAdd = parseBinOp "+"
 parseSub :: [String] -> Maybe LexTree
 parseSub = parseBinOp "-"
 
+parseDiv :: [String] -> Maybe LexTree
+parseDiv = parseBinOp "/"
+
 isParen :: [String] -> Bool
 isParen e 
     | ["("] `isPrefixOf` e = True
@@ -94,12 +95,13 @@ parseNum e = case length e of
                _ -> Nothing
 
 parse :: [String] -> Maybe LexTree
-parse e = parseParen e <|> parseAdd e <|> parseSub e <|> parseMult e <|> parseNum e
+parse e = parseAdd e <|> parseSub e <|> parseMult e <|> parseDiv e <|> parseParen e <|> parseNum e
 
-applyBinOp :: (Num a) => String -> a -> a -> a
+applyBinOp :: (Num a, Fractional a) => String -> a -> a -> a
 applyBinOp "+" x y = x + y
 applyBinOp "*" x y = x * y
 applyBinOp "-" x y = x - y
+applyBinOp "/" x y = x / y
 
 -- a funcion to 'apply' a tree,
 -- i.e. read a number or apply an operator
