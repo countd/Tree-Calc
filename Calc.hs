@@ -43,25 +43,34 @@ treeType _ = Un
 dropSpaces :: String -> String
 dropSpaces = dropWhile (== ' ')
 
-breakUp' :: [String] -> String -> [String]
-breakUp' acc [] = reverse acc
-breakUp' acc cs = let (pref,leftOver) = span (/= ' ') cs
-                  in breakUp' (pref:acc) (dropSpaces leftOver)
+breakAt' :: (Eq a) => [[a]] -> a -> [a] -> [[a]]
+breakAt' acc _ [] = reverse acc
+breakAt' acc x (y:ys) 
+    | y == x = breakAt' ([y]:acc) x ys
+breakAt' acc x xs = let (pref,leftOver) = span (/= x) xs
+                    in breakAt' (pref:acc) x leftOver
 
-dropLast :: [a] -> [a]
-dropLast = reverse . drop 1 . reverse
-                      
-carryParen :: String -> [String]
-carryParen s
-    | "(" `isPrefixOf` s = ["(", (drop 1 s)]
-    | ")" `isSuffixOf` s = [(dropLast s), ")"]
-    | otherwise = [s]
+breakAt :: (Eq a) => a -> [a] -> [[a]]
+breakAt = breakAt' []
 
-parenBreak :: [String] -> [String]
-parenBreak = concat . map carryParen
+tokens :: [Char]
+tokens = "+-*/()" -- space is not in tokens since it's the first 'splitter'
+
+applyToken :: Char -> [String] -> [String]
+applyToken t = concat . map (breakAt t)
+
+applyTokens :: [([String] -> [String])]
+applyTokens = map applyToken tokens
+
+breakUp' :: String -> [String]
+breakUp' cs = foldr (id) (breakAt ' ' cs) applyTokens
 
 breakUp :: String -> [String]
-breakUp =  parenBreak . parenBreak . breakUp' []
+breakUp = filter (not . blanks) . breakUp'
+    where
+      blanks x 
+          | null (dropSpaces x) = True
+          | otherwise = False
 
 parseBinOp :: String -> [String] -> Maybe LexTree
 parseBinOp o e = do
