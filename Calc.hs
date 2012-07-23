@@ -96,14 +96,14 @@ parseNum e = case length e of
 parse :: [String] -> Maybe LexTree
 parse e = parseParen e <|> parseAdd e <|> parseSub e <|> parseMult e <|> parseNum e
 
-applyBinOp :: String ->  Integer -> Integer -> Integer
+applyBinOp :: (Num a) => String -> a -> a -> a
 applyBinOp "+" x y = x + y
 applyBinOp "*" x y = x * y
 applyBinOp "-" x y = x - y
 
 -- a funcion to 'apply' a tree,
 -- i.e. read a number or apply an operator
-apply :: LexTree -> Maybe Integer
+apply :: LexTree -> Maybe Float
 apply t@(Node x y z) = case treeType t of
                          Num -> Just $ read x
                          Bin -> do
@@ -112,6 +112,6 @@ apply t@(Node x y z) = case treeType t of
                            return $ applyBinOp x y' z'
                          Un -> Nothing
 
-eval :: String -> Maybe Integer
+eval :: String -> Maybe Float
 eval s = (parse $ breakUp s) >>= apply
 
