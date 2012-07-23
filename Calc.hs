@@ -54,7 +54,7 @@ parenBreak :: [String] -> [String]
 parenBreak = concat . map carryParen
 
 breakUp :: String -> [String]
-breakUp =  parenBreak . breakUp' []
+breakUp =  parenBreak . parenBreak . breakUp' []
 
 parseBinOp :: String -> [String] -> Maybe LexTree
 parseBinOp o e = do
@@ -86,7 +86,7 @@ parseParen e = do
   guard $ isParen e
   closing <- ")" `elemIndex` e
   let (x, y) = splitAt closing e
-  xTree <- parse $ drop 1 x
+  xTree <- parse $ filter (not . null) $ drop 1 x
   return $ xTree
 
 parseNum :: [String] -> Maybe LexTree
