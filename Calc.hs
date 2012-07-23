@@ -43,7 +43,6 @@ breakUp' acc cs = let (pref,leftOver) = span (/= ' ') cs
 dropLast :: [a] -> [a]
 dropLast = reverse . drop 1 . reverse
                       
-
 carryParen :: String -> [String]
 carryParen s
     | "(" `isPrefixOf` s = ["(", (drop 1 s)]
@@ -64,11 +63,22 @@ parseBinOp o e = do
   yTree <- parse (drop 1 y) -- dropping the op
   return $ op o xTree yTree
 
-parseMult :: [String] -> Maybe LexTree
-parseMult = parseBinOp "*"
-parseAdd = parseBinOp "+"
-parseSub = parseBinOp "-"
-parseDiv = parseBinOp "/"
+binSymbols :: [String]
+binSymbols = [ "+"
+             , "-"
+             , "*"
+             , "/"
+             ]
+
+unSymbols :: [String]
+unSymbols = [ "sin"
+            , "cos"
+            , "tan"
+            , "cot"
+            ]
+
+binParsers :: [([String] -> Maybe LexTree)]
+binParsers = map parseBinOp binSymbols
 
 nextElem :: Int -> [a] -> Maybe Int
 nextElem idx xs = if (length xs - 1) > idx
@@ -83,11 +93,8 @@ parseUnOp o e = do
   arg <- parse y
   return $ unarOp o arg
 
-parseSin :: [String] -> Maybe LexTree
-parseSin = parseUnOp "sin"
-parseCos = parseUnOp "cos"
-parseTan = parseUnOp "tan"
-parseCot = parseUnOp "cot"
+unParsers :: [([String] -> Maybe LexTree)]
+unParsers = map parseUnOp unSymbols
 
 isParen :: [String] -> Bool
 isParen e 
@@ -108,17 +115,12 @@ parseNum e = case length e of
                _ -> Nothing
 
 dispatch :: [([String] -> Maybe LexTree)]
-dispatch = [ parseAdd
-           , parseSub
-           , parseMult
-           , parseDiv
-           , parseParen
-           , parseSin
-           , parseCos
-           , parseTan
-           , parseCot
-           , parseNum
-           ]
+dispatch = concat
+    [ binParsers
+    , [parseParen]
+    , unParsers
+    , [parseNum]
+    ]
 
 parse :: [String] -> Maybe LexTree
 parse e = foldr (<|>) Nothing (dispatch <*> pure e)
