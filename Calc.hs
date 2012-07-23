@@ -16,6 +16,14 @@ data TreeData = Num
               | Bin
                 deriving (Show)
 
+fact' :: (Eq a, Num a) => a -> a -> a
+fact' acc 0 = acc
+fact' acc 1 = acc
+fact' acc n = fact' (acc*n) (n-1)
+
+fact :: (Eq a, Num a) => a -> a
+fact = fact' 1
+
 value :: a -> Tree a
 value x = Node x Nil Nil
 
@@ -75,6 +83,7 @@ unSymbols = [ "sin"
             , "cos"
             , "tan"
             , "cot"
+            , "fact"
             ]
 
 binParsers :: [([String] -> Maybe LexTree)]
@@ -133,12 +142,13 @@ binaryOps = Map.fromList
             , ("/", (/))
             ]
 
-unaryOps :: (Floating a) => Map.Map String (a -> a)
+unaryOps :: (Eq a, Floating a) => Map.Map String (a -> a)
 unaryOps = Map.fromList
            [ ("sin", sin)
            , ("cos", cos)
            , ("tan", tan)
            , ("cot", cot)
+           , ("fact", fact)
            ] 
     where
       cot x = 1 / (tan x)
@@ -148,13 +158,13 @@ unaryOps = Map.fromList
 getBinOp :: (Fractional a) => String -> (a -> a -> a)
 getBinOp o = fromJust $ Map.lookup o binaryOps
 
-getUnOp :: (Floating a) => String -> (a -> a)
+getUnOp :: (Eq a, Floating a) => String -> (a -> a)
 getUnOp o = fromJust $ Map.lookup o unaryOps
 
 applyBinOp :: (Fractional a) => String -> a -> a -> a
 applyBinOp o x y = (getBinOp o) x y
 
-applyUnOp :: (Floating a) => String -> a -> a
+applyUnOp :: (Eq a, Floating a) => String -> a -> a
 applyUnOp o x = (getUnOp o) x
 
 -- a funcion to 'apply' a tree,
