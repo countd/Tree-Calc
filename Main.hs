@@ -2,6 +2,7 @@ module Main where
 
 import Calc
 import Data.List (unlines)
+import System.IO
 
 control :: [String]
 control = [":q", "quit"]
@@ -29,6 +30,7 @@ main = do
 interactionLoop :: IO ()
 interactionLoop = do
   putStr prompt
+  hFlush stdout
   input <- getLine
   if isControl input
      then react input
@@ -44,5 +46,5 @@ evaluate :: String -> IO ()
 evaluate i = do
   case eval i of
     Nothing -> putStrLn "Malformed input."
-    (Just x) -> putStrLn (show x)
+    (Just x) -> putStrLn $ "=> " ++ (show x)
   interactionLoop
