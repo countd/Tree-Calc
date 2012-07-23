@@ -16,11 +16,23 @@ data Tree a = Nil | Node a (Tree a) (Tree a)
 
 type LexTree = Tree String
 
+data TreeData = Num
+              | Un 
+              | Bin
+                deriving (Show)
+
 value :: a -> Tree a
 value x = Node x Nil Nil
 
 op :: String -> Tree String -> Tree String -> Tree String
 op o x y = Node o x y
+
+-- does the tree represent a number,
+-- a binary operator or a unary operator?
+treeType :: LexTree -> TreeData
+treeType (Node _ Nil Nil) = Num
+treeType (Node _ (Node _ _ _) (Node _ _ _)) = Bin
+treeType _ = Un
 
 dropSpaces :: String -> String
 dropSpaces = dropWhile (== ' ')
@@ -46,29 +58,22 @@ parenBreak = concat . map carryParen
 breakUp :: String -> [String]
 breakUp =  parenBreak . breakUp' []
 
-parseMult :: [String] -> Maybe LexTree
-parseMult e = do
-  mult <- elemIndex "*" e
-  let (x, y) = splitAt mult e
+parseBinOp :: String -> [String] -> Maybe LexTree
+parseBinOp o e = do
+  oper <- o `elemIndex` e
+  let (x,y) = splitAt oper e
   xTree <- parse x
-  yTree <- parse (drop 1 y) -- dropping the '*'
-  return $ op "*" xTree yTree
+  yTree <- parse (drop 1 y) -- dropping the op
+  return $ op o xTree yTree
+
+parseMult :: [String] -> Maybe LexTree
+parseMult = parseBinOp "*"
 
 parseAdd :: [String] -> Maybe LexTree
-parseAdd e = do
-  plus <- "+" `elemIndex` e
-  let (x, y) = splitAt plus e
-  xTree <- parse x
-  yTree <- parse (drop 1 y)
-  return $ op "+" xTree yTree
+parseAdd = parseBinOp "+"
 
 parseSub :: [String] -> Maybe LexTree
-parseSub e = do
-  minus <- "-" `elemIndex` e
-  let (x,y) = splitAt minus e
-  xTree <- parse x
-  yTree <- parse (drop 1 y)
-  return $ op "-" xTree yTree
+parseSub = parseBinOp "-"
 
 isParen :: [String] -> Bool
 isParen e 
@@ -91,32 +96,22 @@ parseNum e = case length e of
 parse :: [String] -> Maybe LexTree
 parse e = parseParen e <|> parseAdd e <|> parseSub e <|> parseMult e <|> parseNum e
 
-applyBinOp :: String -> String -> String -> Integer
-applyBinOp "+" x y = (read x) + (read y)
-applyBinOp "*" x y = (read x) * (read y)
-applyBinOp "-" x y = (read x) - (read y)
+applyBinOp :: String ->  Integer -> Integer -> Integer
+applyBinOp "+" x y = x + y
+applyBinOp "*" x y = x * y
+applyBinOp "-" x y = x - y
 
-numberNode :: LexTree -> Bool
-numberNode (Node _ Nil Nil) = True
-numberNode _ = False
-
-getVal :: LexTree -> String
-getVal (Node x _ _) = x
-
-reduceOp :: LexTree -> Maybe Integer
-reduceOp (Node op x y)
-    | numberNode x && numberNode y = Just $ applyBinOp op (getVal x) (getVal y)
-    | otherwise = Nothing
-
-reduceTree :: LexTree -> Maybe LexTree
-reduceTree t@(Node val t1 t2)
-    | numberNode t1 && numberNode t2 = reduceOp t >>= return . value . show
-    | numberNode t = return t
-    | otherwise = do
-  reduced1 <- reduceTree t1
-  reduced2 <- reduceTree t2
-  reduceTree (Node val reduced1 reduced2)
+-- a funcion to 'apply' a tree,
+-- i.e. read a number or apply an operator
+apply :: LexTree -> Maybe Integer
+apply t@(Node x y z) = case treeType t of
+                         Num -> Just $ read x
+                         Bin -> do
+                           y' <- apply y
+                           z' <- apply z
+                           return $ applyBinOp x y' z'
+                         Un -> Nothing
 
 eval :: String -> Maybe Integer
-eval s = (parse $ breakUp s) >>= reduceTree >>= return . read . getVal
+eval s = (parse $ breakUp s) >>= apply
 
